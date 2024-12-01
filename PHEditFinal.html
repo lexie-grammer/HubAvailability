@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Role & Availability Checker</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+        .container {
+            text-align: center;
+            max-width: 300px;
+            margin: 20px auto;
+        }
+        .output {
+            margin-top: 20px;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Check Role & Availability</h1>
+        
+        <!-- Step 1: Role Selection -->
+        <div id="roleSelection">
+            <h2>Select Your Role</h2>
+            <label>
+                <input type="radio" name="role" value="Professor"> Professor
+            </label><br>
+            <label>
+                <input type="radio" name="role" value="Student"> Student
+            </label><br><br>
+            <button onclick="checkRole()">Next</button>
+        </div>
+
+        <!-- Step 2A: Professor Identity Selection (hidden initially) -->
+        <div id="professorSelection" style="display:none;">
+            <h2>Select Who You Are</h2>
+            <label>
+                <input type="radio" name="professor" value="Dr. Brown"> Dr. Brown
+            </label><br>
+            <label>
+                <input type="radio" name="professor" value="Dr. Pittenger"> Dr. Pittenger
+            </label><br>
+            <label>
+                <input type="radio" name="professor" value="Professor 3"> Professor 3
+            </label><br><br>
+            <button onclick="confirmProfessor()">Next</button>
+        </div>
+
+        <!-- Step 2B: Student - Select Professor to See (hidden initially) -->
+        <div id="studentProfessorSelection" style="display:none;">
+            <h2>Select Professor to See</h2>
+            <label>
+                <input type="radio" name="studentProfessor" value="Dr. Brown"> Dr. Brown
+            </label><br>
+            <label>
+                <input type="radio" name="studentProfessor" value="Dr. Pittenger"> Dr. Pittenger
+            </label><br>
+            <label>
+                <input type="radio" name="studentProfessor" value="Professor 3"> Professor 3
+            </label><br><br>
+            <button onclick="showProfessorAvailability()">View Availability</button>
+        </div>
+
+        <!-- Step 3: Availability Selection (hidden initially) -->
+        <div id="availabilitySelection" style="display:none;">
+            <h2>Select Availability</h2>
+            <label>
+                <input type="radio" name="availability" value="Available"> Available
+            </label><br>
+            <label>
+                <input type="radio" name="availability" value="Almost Available"> Almost Available
+            </label><br>
+            <label>
+                <input type="radio" name="availability" value="Unavailable"> Unavailable
+            </label><br><br>
+            <button onclick="submitAvailability()">Submit</button>
+        </div>
+
+        <!-- Output Message -->
+        <div id="output" class="output"></div>
+    </div>
+
+    <script>
+        let currentProfessor = "";
+
+        function checkRole() {
+            const role = document.querySelector('input[name="role"]:checked');
+            if (role) {
+                if (role.value === "Professor") {
+                    document.getElementById('roleSelection').style.display = 'none';
+                    document.getElementById('professorSelection').style.display = 'block';
+                } else if (role.value === "Student") {
+                    document.getElementById('roleSelection').style.display = 'none';
+                    document.getElementById('studentProfessorSelection').style.display = 'block';
+                }
+            } else {
+                alert("Please select a role.");
+            }
+        }
+
+        function confirmProfessor() {
+            const professor = document.querySelector('input[name="professor"]:checked');
+            if (professor) {
+                currentProfessor = professor.value;
+                document.getElementById('professorSelection').style.display = 'none';
+                document.getElementById('availabilitySelection').style.display = 'block';
+            } else {
+                alert("Please select who you are.");
+            }
+        }
+
+        function submitAvailability() {
+            const availability = document.querySelector('input[name="availability"]:checked');
+            if (availability) {
+                // Send professor's availability to backend
+                fetch("http://localhost:8080/api/availability/update", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        professorName: currentProfessor,
+                        availability: availability.value
+                    })
+                }).then(response => response.text())
+                  .then(data => document.getElementById('output').innerText = data);
+            } else {
+                alert("Please select an availability option.");
+            }
+        }
+
+        function showProfessorAvailability() {
+            const studentProfessor = document.querySelector('input[name="studentProfessor"]:checked');
+            if (studentProfessor) {
+                const selectedProfessor = studentProfessor.value;
+                // Fetch professor's availability from backend
+                fetch(`http://localhost:8080/api/availability?professorName=${encodeURIComponent(selectedProfessor)}`)
+                    .then(response => response.json())
+                    .then(data => document.getElementById('output').innerText = `${selectedProfessor}'s Availability: ${data.availability}`);
+            } else {
+                alert("Please select a professor to see.");
+            }
+        }
+    </script>
+</body>
+</html>
